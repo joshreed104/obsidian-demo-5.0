@@ -38,6 +38,7 @@ export class Cache {
   async read(queryStr) {
     //the queryStr it gets is the JSON stringified
     const returnedValue = await this.cacheRead(queryStr);
+
     if (('returnedValue', returnedValue)) {
       return JSON.parse(returnedValue);
     } else {
@@ -46,7 +47,6 @@ export class Cache {
   }
   async write(queryStr, respObj, deleteFlag) {
     // update the original cache with same reference
-    // const referencesArray = Object.keys(respObj);
     await this.cacheWrite(queryStr, JSON.stringify(respObj));
   }
 
@@ -70,15 +70,11 @@ export class Cache {
   };
 
   cacheWriteObject = async (hash, obj) => {
-    // console.log('inside cacheWriteObject, object argument: ', obj);
     let entries = Object.entries(obj).flat();
     entries = entries.map((entry) => JSON.stringify(entry));
-    // console.log('parsed entries: ', entries);
-    // console.log('hash: ', hash);
+
     await redis.hset(hash, ...entries);
   };
-
-  cacheUpdateRef = async (hash, obj) => {};
 
   cacheReadObject = async (hash, field = false) => {
     if (field) {
@@ -112,8 +108,6 @@ export class Cache {
   }
 
   async cacheRead(hash) {
-    console.log(`quickCache cacheRead function context: ${this.context}`);
-    console.log('quickCache cacheRead, hash: ', hash);
     if (this.context === 'client') {
       return this.storage[hash];
     } else {
@@ -130,15 +124,12 @@ export class Cache {
         }
       }
       let hashedQuery = await redis.hget('ROOT_QUERY', hash);
-      console.log('cacheRead - hashedQuery: ', hashedQuery);
 
       if (hashedQuery === undefined) return undefined;
       return JSON.parse(hashedQuery);
     }
   }
-  /// ADD QUERY TO ROOT_QUERY HASH, NOT MAIN LEVEL IN REDIS - DONE
   async cacheWrite(hash, value) {
-    // console.log('inside cacheWrite line 135');
     // writes value to object cache or JSON.stringified value to redis cache
     if (this.context === 'client') {
       this.storage[hash] = value;
@@ -173,13 +164,8 @@ export class Cache {
         if (err) console.log('redis error', err);
         console.log(successful, 'clear');
       });
-      await redis.hset('ROOT_QUERY', 'myQuery String', ['~Plant~1', 'plant2']);
-      await redis.hset('ROOT_MUTATION', 'myMutation String', [
-        'plant1',
-        'plant2',
-      ]);
-
-      // await redis.hset('ROOT_MUTATION', null, null);
+      await redis.hset('ROOT_QUERY', 'blank', JSON.stringify({}));
+      await redis.set('ROOT_MUTATION', 'blank', JSON.stringify({}));
     }
   }
 
