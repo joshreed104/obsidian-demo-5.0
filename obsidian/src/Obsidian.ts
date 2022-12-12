@@ -124,6 +124,7 @@ export async function ObsidianRouter<T>({
           customIdentifier
         );
         if (isMutation(body)) {
+          cache.cacheClear();
           const queryString = await request.body().value;
           invalidateCache(normalizedGQLResponse, queryString.query);
         }
