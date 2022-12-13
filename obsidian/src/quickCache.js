@@ -4,6 +4,8 @@ import 'https://deno.land/x/dotenv/load.ts';
 import { connect } from 'https://deno.land/x/redis/mod.ts';
 import { gql } from 'https://deno.land/x/oak_graphql/mod.ts';
 import { print, visit } from 'https://deno.land/x/graphql_deno/mod.ts';
+import { transformResponse } from './transformResponse.ts';
+import { restructure } from './restructure.ts';
 
 let redis;
 const context = window.Deno ? 'server' : 'client';
@@ -72,8 +74,21 @@ export class Cache {
   cacheWriteObject = async (hash, obj) => {
     let entries = Object.entries(obj).flat();
     entries = entries.map((entry) => JSON.stringify(entry));
-
+    console.log('writeObject hash: ', hash);
+    console.log('writeObject obj: ', obj);
     await redis.hset(hash, ...entries);
+  };
+
+  cacheUpdate = async (normalizedGQLResponse) => {
+    const savedQuery =
+      '{\n  plants {\n    __typename\n    id\n    name\n    size\n    maintenance\n    imageurl\n  }\n}\n';
+    const originalQueryResponse = await this.read(savedQuery);
+    console.log('originalQueryResponse destructured: ', originalQueryResponse);
+    const newHash = Object.keys(normalizedGQLResponse)[0];
+    const newValue = normalizedGQLResponse[newHash];
+    originalQueryResponse[newHash] = {};
+    console.log('newquery response: ', originalQueryResponse);
+    // this.write(savedQuery, originalQueryResponse);
   };
 
   cacheReadObject = async (hash, field = false) => {
