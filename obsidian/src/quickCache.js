@@ -80,19 +80,34 @@ export class Cache {
   };
 
   cacheUpdate = async (normalizedGQLResponse) => {
-    // right now, works on hard coded saved query in redis cache
-    const savedQuery =
+    // hard coded for demo
+    const allPlantsQuery =
       '{\n  plants {\n    __typename\n    id\n    name\n    size\n    maintenance\n    imageurl\n  }\n}\n';
+    const lowMainQuery =
+      '{\n  plants(input: {maintenance: "Low"}) {\n    __typename\n    id\n    name\n    size\n    maintenance\n    imageurl\n  }\n}\n';
+    const largePlantsQuery =
+      '{\n  plants(input: {size: "Large"}) {\n    __typename\n    id\n    name\n    size\n    maintenance\n    imageurl\n  }\n}\n';
     // gets the saved value at the given query in the cache
-    const originalQueryResponse = await this.read(savedQuery);
+    const originalAllQueryResponse = await this.read(allPlantsQuery);
     // Pulls the key name from the new item in the mutation response
     // sets a new key on the cached query response in the proper format:
     // ~Plant~10: {};
     // writes updated query response to redis cache
     const newHash = Object.keys(normalizedGQLResponse)[0];
-    // const newValue = normalizedGQLResponse[newHash];
-    originalQueryResponse[newHash] = {};
-    this.write(savedQuery, originalQueryResponse);
+    originalAllQueryResponse[newHash] = {};
+    this.write(allPlantsQuery, originalAllQueryResponse);
+
+    if (normalizedGQLResponse[newHash].maintenance === 'low' || 'Low') {
+      const originalQueryResponse = await this.read(lowMainQuery);
+      originalQueryResponse[newHash] = {};
+      this.write(lowMainQuery, originalQueryResponse);
+    }
+
+    if (normalizedGQLResponse[newHash].size === ('large' || 'Large')) {
+      const originalQueryResponse = await this.read(largePlantsQuery);
+      originalQueryResponse[newHash] = {};
+      this.write(largePlantsQuery, originalQueryResponse);
+    }
   };
 
   cacheReadObject = async (hash, field = false) => {
