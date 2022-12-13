@@ -34,6 +34,8 @@ export const transformResponse = (
   responseObject: any,
   hashableKeys: Array<string>
 ): GenericObject => {
+  const cache = new Cache();
+
   const result: GenericObject = {};
 
   if (responseObject.data) {
@@ -64,6 +66,8 @@ export const detransformResponse = async (
   queryKey: String,
   transformedValue: any
 ): Promise<any> => {
+  const cache = new Cache();
+
   // remove all text within parentheses aka '(input: ...)'
   queryKey = queryKey.replace(/\(([^)]+)\)/, '');
   // save Regex matches for line break followed by '{'

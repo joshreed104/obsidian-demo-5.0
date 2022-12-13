@@ -91,6 +91,7 @@ export const Section = (props: any) => {
 
   const getLargePlants = async () => {
     const result = await query(largePlantsQuery);
+    console.log('result in section.jsx: ', result);
     setPlants(result.data.plants);
   };
 
