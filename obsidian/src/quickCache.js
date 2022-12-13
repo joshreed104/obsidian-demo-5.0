@@ -88,7 +88,7 @@ export class Cache {
     const newValue = normalizedGQLResponse[newHash];
     originalQueryResponse[newHash] = {};
     console.log('newquery response: ', originalQueryResponse);
-    // this.write(savedQuery, originalQueryResponse);
+    this.write(savedQuery, originalQueryResponse);
   };
 
   cacheReadObject = async (hash, field = false) => {
