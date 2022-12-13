@@ -68,6 +68,8 @@ export const detransformResponse = async (
 ): Promise<any> => {
   const cache = new Cache();
 
+  console.log('detransformResponse - queryKey: ', queryKey);
+
   // remove all text within parentheses aka '(input: ...)'
   queryKey = queryKey.replace(/\(([^)]+)\)/, '');
   // save Regex matches for line break followed by '{'
@@ -140,6 +142,5 @@ export const detransformResponse = async (
       fields
     );
   }
-
   return detransformedResult;
 };

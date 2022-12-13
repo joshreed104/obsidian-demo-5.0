@@ -80,14 +80,18 @@ export class Cache {
   };
 
   cacheUpdate = async (normalizedGQLResponse) => {
+    // right now, works on hard coded saved query in redis cache
     const savedQuery =
       '{\n  plants {\n    __typename\n    id\n    name\n    size\n    maintenance\n    imageurl\n  }\n}\n';
+    // gets the saved value at the given query in the cache
     const originalQueryResponse = await this.read(savedQuery);
-    console.log('originalQueryResponse destructured: ', originalQueryResponse);
+    // Pulls the key name from the new item in the mutation response
+    // sets a new key on the cached query response in the proper format:
+    // ~Plant~10: {};
+    // writes updated query response to redis cache
     const newHash = Object.keys(normalizedGQLResponse)[0];
-    const newValue = normalizedGQLResponse[newHash];
+    // const newValue = normalizedGQLResponse[newHash];
     originalQueryResponse[newHash] = {};
-    console.log('newquery response: ', originalQueryResponse);
     this.write(savedQuery, originalQueryResponse);
   };
 
