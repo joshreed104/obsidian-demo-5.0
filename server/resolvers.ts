@@ -58,8 +58,8 @@ const resolvers = {
             imageurl: string;
           }>('SELECT * FROM obsidian_demo_schema.plants');
         }
-        console.log('(In resolver getting plants');
-        console.log(rows.rows);
+        // console.log('(In resolver getting plants');
+        // console.log(rows.rows);
         await client.release();
         return rows.rows;
       } catch (err) {
@@ -116,13 +116,13 @@ const resolvers = {
       }
     ) => {
       try {
-        console.log(
-          'In the resolver: ',
-          input.name,
-          input.maintenance,
-          input.size,
-          input.imageurl
-        );
+        // console.log(
+        //   'In the resolver: ',
+        //   input.name,
+        //   input.maintenance,
+        //   input.size,
+        //   input.imageurl
+        // );
         const client = await pool.connect();
         const rows = await client.queryObject<{
           id: number;
