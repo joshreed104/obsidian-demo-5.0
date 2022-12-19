@@ -86,33 +86,14 @@ export async function ObsidianRouter<T>({
     try {
       const contextResult = context ? await context(ctx) : undefined;
       let body = await request.body().value;
-      console.log(body);
 
-      // deno-lint-ignore no-inner-declarations
-      // function getProps(bodyString) {
-      //   let propsString = '';
-      //   let propsObj = {};
-      //   for (let i = 0; i < bodyString.length; i++) {
-      //     if (bodyString[i] === '{') {
-      //       let j = i + 1;
-      //       while (bodyString[j] !== '{' ) {
-      //         if (bodyString[j] !== ' ') propsString += bodyString[j];
-      //         j++;
-      //       }
-      //       propsObj[i] = propsString;
-      //       propsString = '';
-      //       i = j;
-      //     }
-      //   }
-      //   return propsObj;
-      // }
-      let ast = restructure(body);
-      console.log(ast);
-      console.log(typeof ast);
+      // changing what the query body looks like and passing to read/write
 
       if (maxQueryDepth) queryDepthLimiter(body.query, maxQueryDepth); // If a securty limit is set for maxQueryDepth, invoke queryDepthLimiter, which throws error if query depth exceeds maximum
-      body = { query: restructure(body) }; // Restructre gets rid of variables and fragments from the query
+      // body = { query: restructure(body) }; // Restructre gets rid of variables and fragments from the query
+
       let cacheQueryValue = await cache.read(body.query);
+      console.log(cacheQueryValue);
       // Is query in cache?
       if (useCache && useQueryCache && cacheQueryValue) {
         let detransformedCacheQueryValue = await detransformResponse(
@@ -143,10 +124,12 @@ export async function ObsidianRouter<T>({
           body.variables || undefined,
           body.operationName || undefined
         );
+        console.log('gqlResponse raw: ', gqlResponse);
         const normalizedGQLResponse = normalizeObject(
           gqlResponse,
           customIdentifier
         );
+        console.log('normalized: ', normalizedGQLResponse);
         if (isMutation(body)) {
           // cache.cacheClear();
           const queryString = await request.body().value;
