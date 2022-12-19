@@ -111,22 +111,51 @@ export class Cache {
     if (this.context === 'client') {
       return this.storage[hash];
     } else {
-      if (hash === 'ROOT_QUERY' || hash === 'ROOT_MUTATION') {
-        const hasRootQuery = await redis.get('ROOT_QUERY');
-
-        if (!hasRootQuery) {
-          await redis.set('ROOT_QUERY', JSON.stringify({}));
-        }
-        const hasRootMutation = await redis.get('ROOT_MUTATION');
-
-        if (!hasRootMutation) {
-          await redis.set('ROOT_MUTATION', JSON.stringify({}));
-        }
+      let ast = gql(value.query);
+      console.log('ast from restructure', ast);
+      console.log(
+        ast.definitions[0].selectionSet.selections[0].name,
+        ast.definitions[0].selectionSet.selections[0].name.value
+      );
+      const name = ast.definitions[0].selectionSet.selections[0].name.value;
+      const fieldsArray =
+        ast.definitions[0].selectionSet.selections[0].arguments[0].value.fields;
+      const resultsObj = {};
+      fieldsArray.forEach((el) => {
+        const name = el.name.value;
+        const value = el.value.value;
+        resultsObj[name] = value;
+      });
+      console.log(resultsObj);
+      let cacheHash = `${name}`;
+      for (let key in resultsObj) {
+        cacheHash += `:${key}:${resultsObj[key]}`;
       }
-      let hashedQuery = await redis.hget('ROOT_QUERY', hash);
+      console.log('cacheHash: ', cacheHash);
+      console.log(
+        ast.definitions[0].selectionSet.selections[0].arguments[0].value
+          .fields[0],
+        ast.definitions[0].selectionSet.selections[0].arguments[0].value
+          .fields[0].name.value,
+        ast.definitions[0].selectionSet.selections[0].arguments[0].value
+          .fields[0].value.value
+      );
+      // if (hash === 'ROOT_QUERY' || hash === 'ROOT_MUTATION') {
+      //   const hasRootQuery = await redis.get('ROOT_QUERY');
 
-      if (hashedQuery === undefined) return undefined;
-      return JSON.parse(hashedQuery);
+      //   if (!hasRootQuery) {
+      //     await redis.set('ROOT_QUERY', JSON.stringify({}));
+      //   }
+      //   const hasRootMutation = await redis.get('ROOT_MUTATION');
+
+      //   if (!hasRootMutation) {
+      //     await redis.set('ROOT_MUTATION', JSON.stringify({}));
+      //   }
+      // }
+      // let hashedQuery = await redis.hget('ROOT_QUERY', hash);
+
+      // if (hashedQuery === undefined) return undefined;
+      // return JSON.parse(hashedQuery);
     }
   }
   async cacheWrite(hash, value) {

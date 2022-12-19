@@ -86,6 +86,30 @@ export async function ObsidianRouter<T>({
     try {
       const contextResult = context ? await context(ctx) : undefined;
       let body = await request.body().value;
+      console.log(body);
+
+      // deno-lint-ignore no-inner-declarations
+      // function getProps(bodyString) {
+      //   let propsString = '';
+      //   let propsObj = {};
+      //   for (let i = 0; i < bodyString.length; i++) {
+      //     if (bodyString[i] === '{') {
+      //       let j = i + 1;
+      //       while (bodyString[j] !== '{' ) {
+      //         if (bodyString[j] !== ' ') propsString += bodyString[j];
+      //         j++;
+      //       }
+      //       propsObj[i] = propsString;
+      //       propsString = '';
+      //       i = j;
+      //     }
+      //   }
+      //   return propsObj;
+      // }
+      let ast = restructure(body);
+      console.log(ast);
+      console.log(typeof ast);
+
       if (maxQueryDepth) queryDepthLimiter(body.query, maxQueryDepth); // If a securty limit is set for maxQueryDepth, invoke queryDepthLimiter, which throws error if query depth exceeds maximum
       body = { query: restructure(body) }; // Restructre gets rid of variables and fragments from the query
       let cacheQueryValue = await cache.read(body.query);
@@ -124,7 +148,7 @@ export async function ObsidianRouter<T>({
           customIdentifier
         );
         if (isMutation(body)) {
-          cache.cacheClear();
+          // cache.cacheClear();
           const queryString = await request.body().value;
           invalidateCache(normalizedGQLResponse, queryString.query);
         }
