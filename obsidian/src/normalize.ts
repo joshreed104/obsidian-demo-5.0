@@ -120,7 +120,6 @@ export const normalizeObject = (
   hashableKeys: Array<string>,
   normalizedHashableObjects: GenericObject = {}
 ): GenericObject => {
-  console.log('nestedObject: ', nestedObject);
   let hasAlreadyPrinted = false;
   for (const key in nestedObject) {
     if (

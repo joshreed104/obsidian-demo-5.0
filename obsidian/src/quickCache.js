@@ -47,8 +47,9 @@ export class Cache {
   }
   async write(queryStr, respObj, deleteFlag) {
     // update the original cache with same reference
-    console.log('cache.write(): ', queryStr, respObj);
-    await this.cacheWrite(queryStr, JSON.stringify(respObj));
+    const cacheHash = this.getCacheHash(queryStr);
+    console.log('write cacheHash: ', cacheHash);
+    await this.cacheWrite(cacheHash, JSON.stringify(respObj));
   }
 
   //will overwrite a list at the given hash by default
@@ -112,32 +113,6 @@ export class Cache {
     if (this.context === 'client') {
       return this.storage[hash];
     } else {
-      // traverses AST and gets document name ("plants"), and any filter values in the query ("maintenance:Low")
-      let ast = gql(hash);
-      const tableName =
-        ast.definitions[0].selectionSet.selections[0].name.value;
-
-      let cacheHash = `${tableName}`;
-      console.log(
-        'arguments: ',
-        ast.definitions[0].selectionSet.selections[0].arguments
-      );
-      if (ast.definitions[0].selectionSet.selections[0].arguments.length) {
-        const fieldsArray =
-          ast.definitions[0].selectionSet.selections[0].arguments[0].value
-            .fields;
-        const resultsObj = {};
-        fieldsArray.forEach((el) => {
-          const name = el.name.value;
-          const value = el.value.value;
-          resultsObj[name] = value;
-        });
-
-        for (let key in resultsObj) {
-          cacheHash += `:${key}:${resultsObj[key]}`;
-        }
-      }
-
       if (hash === 'ROOT_QUERY' || hash === 'ROOT_MUTATION') {
         const hasRootQuery = await redis.get('ROOT_QUERY');
 
@@ -150,15 +125,38 @@ export class Cache {
           await redis.set('ROOT_MUTATION', JSON.stringify({}));
         }
       }
-      let hashedQuery = await redis.hgetall(cacheHash);
-      console.log(
-        'trying to read empty cache: ',
-        hashedQuery,
-        typeof hashedQuery
-      );
+      const cacheHash = this.getCacheHash(hash);
+      let hashedQuery = await redis.hget('ROOT_QUERY', cacheHash);
 
-      if (!hashedQuery.length) return;
+      if (!hashedQuery === undefined) return;
       return JSON.parse(hashedQuery);
+    }
+  }
+
+  getCacheHash(queryStr) {
+    // traverses AST and gets document name ("plants"), and any filter values in the query ("maintenance:Low")
+    const ast = gql(queryStr);
+    const tableName = ast.definitions[0].selectionSet.selections[0].name.value;
+
+    let cacheHash = `${tableName}`;
+    console.log(
+      'arguments: ',
+      ast.definitions[0].selectionSet.selections[0].arguments
+    );
+    if (ast.definitions[0].selectionSet.selections[0].arguments.length) {
+      const fieldsArray =
+        ast.definitions[0].selectionSet.selections[0].arguments[0].value.fields;
+      const resultsObj = {};
+      fieldsArray.forEach((el) => {
+        const name = el.name.value;
+        const value = el.value.value;
+        resultsObj[name] = value;
+      });
+
+      for (let key in resultsObj) {
+        cacheHash += `:${key}:${resultsObj[key]}`;
+      }
+      return cacheHash;
     }
   }
   async cacheWrite(hash, value) {

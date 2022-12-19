@@ -93,12 +93,16 @@ export async function ObsidianRouter<T>({
       // body = { query: restructure(body) }; // Restructre gets rid of variables and fragments from the query
 
       let cacheQueryValue = await cache.read(body.query);
-      console.log(cacheQueryValue);
+      console.log('cacheQueryValue: ', cacheQueryValue);
       // Is query in cache?
       if (useCache && useQueryCache && cacheQueryValue) {
         let detransformedCacheQueryValue = await detransformResponse(
           body.query,
           cacheQueryValue
+        );
+        console.log(
+          'detransformedCacheQueryValue: ',
+          detransformedCacheQueryValue
         );
         if (!detransformedCacheQueryValue) {
           // cache was evicted if any partial cache is missing, which causes detransformResponse to return undefined
@@ -124,12 +128,12 @@ export async function ObsidianRouter<T>({
           body.variables || undefined,
           body.operationName || undefined
         );
-        console.log('gqlResponse raw: ', gqlResponse);
+        // console.log('gqlResponse raw: ', gqlResponse);
         const normalizedGQLResponse = normalizeObject(
           gqlResponse,
           customIdentifier
         );
-        console.log('normalized: ', normalizedGQLResponse);
+        // console.log('normalized: ', normalizedGQLResponse);
         if (isMutation(body)) {
           // cache.cacheClear();
           const queryString = await request.body().value;
