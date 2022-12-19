@@ -156,8 +156,8 @@ export class Cache {
       for (let key in resultsObj) {
         cacheHash += `:${key}:${resultsObj[key]}`;
       }
-      return cacheHash;
     }
+    return cacheHash;
   }
   async cacheWrite(hash, value) {
     // writes value to object cache or JSON.stringified value to redis cache
@@ -166,7 +166,7 @@ export class Cache {
     } else {
       value = JSON.stringify(value);
       await redis.hset('ROOT_QUERY', hash, value);
-      let hashedQuery = await redis.hget('ROOT_QUERY', hash);
+      // let hashedQuery = await redis.hget('ROOT_QUERY', hash);
     }
   }
 
