@@ -1,4 +1,8 @@
-import { applyGraphQL, gql, GQLError } from "https://deno.land/x/oak_graphql/mod.ts";
+import {
+  applyGraphQL,
+  gql,
+  GQLError,
+} from 'https://deno.land/x/oak_graphql/mod.ts';
 
 const types = gql`
   enum PlantMaintenance {
@@ -6,7 +10,7 @@ const types = gql`
     MEDIUM
     HIGH
   }
-	
+
   enum PlantSize {
     SMALL
     MEDIUM
@@ -48,7 +52,6 @@ const types = gql`
     name: String!
     climate: String!
   }
-
   type Query {
     plants(input: PlantInput): [Plant]!
     countries(input: CountryInput): [Country]!

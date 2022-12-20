@@ -74,7 +74,7 @@ export class Cache {
   cacheWriteObject = async (hash, obj) => {
     let entries = Object.entries(obj).flat();
     entries = entries.map((entry) => JSON.stringify(entry));
-
+    console.log('entries: ', entries);
     await redis.hset(hash, ...entries);
   };
 
@@ -137,12 +137,9 @@ export class Cache {
     // traverses AST and gets document name ("plants"), and any filter values in the query ("maintenance:Low")
     const ast = gql(queryStr);
     const tableName = ast.definitions[0].selectionSet.selections[0].name.value;
-
+    console.log('ast: ', ast);
     let cacheHash = `${tableName}`;
-    console.log(
-      'arguments: ',
-      ast.definitions[0].selectionSet.selections[0].arguments
-    );
+    if (ast.definitions[0].operation === 'mutation') return cacheHash;
     if (ast.definitions[0].selectionSet.selections[0].arguments.length) {
       const fieldsArray =
         ast.definitions[0].selectionSet.selections[0].arguments[0].value.fields;
@@ -157,6 +154,7 @@ export class Cache {
         cacheHash += `:${key}:${resultsObj[key]}`;
       }
     }
+    console.log('finished getCacheHash');
     return cacheHash;
   }
   async cacheWrite(hash, value) {
