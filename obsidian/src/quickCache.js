@@ -47,7 +47,9 @@ export class Cache {
   }
   async write(queryStr, respObj, deleteFlag) {
     // update the original cache with same reference
-    await this.cacheWrite(queryStr, JSON.stringify(respObj));
+    const cacheHash = this.getCacheHash(queryStr);
+    console.log('write cacheHash: ', cacheHash);
+    await this.cacheWrite(cacheHash, JSON.stringify(respObj));
   }
 
   //will overwrite a list at the given hash by default
@@ -72,7 +74,7 @@ export class Cache {
   cacheWriteObject = async (hash, obj) => {
     let entries = Object.entries(obj).flat();
     entries = entries.map((entry) => JSON.stringify(entry));
-
+    console.log('entries: ', entries);
     await redis.hset(hash, ...entries);
   };
 
@@ -123,11 +125,37 @@ export class Cache {
           await redis.set('ROOT_MUTATION', JSON.stringify({}));
         }
       }
-      let hashedQuery = await redis.hget('ROOT_QUERY', hash);
+      const cacheHash = this.getCacheHash(hash);
+      let hashedQuery = await redis.hget('ROOT_QUERY', cacheHash);
 
-      if (hashedQuery === undefined) return undefined;
+      if (!hashedQuery === undefined) return;
       return JSON.parse(hashedQuery);
     }
+  }
+
+  getCacheHash(queryStr) {
+    // traverses AST and gets document name ("plants"), and any filter values in the query ("maintenance:Low")
+    const ast = gql(queryStr);
+    const tableName = ast.definitions[0].selectionSet.selections[0].name.value;
+    console.log('ast: ', ast);
+    let cacheHash = `${tableName}`;
+    if (ast.definitions[0].operation === 'mutation') return cacheHash;
+    if (ast.definitions[0].selectionSet.selections[0].arguments.length) {
+      const fieldsArray =
+        ast.definitions[0].selectionSet.selections[0].arguments[0].value.fields;
+      const resultsObj = {};
+      fieldsArray.forEach((el) => {
+        const name = el.name.value;
+        const value = el.value.value;
+        resultsObj[name] = value;
+      });
+
+      for (let key in resultsObj) {
+        cacheHash += `:${key}:${resultsObj[key]}`;
+      }
+    }
+    console.log('finished getCacheHash');
+    return cacheHash;
   }
   async cacheWrite(hash, value) {
     // writes value to object cache or JSON.stringified value to redis cache
@@ -136,7 +164,7 @@ export class Cache {
     } else {
       value = JSON.stringify(value);
       await redis.hset('ROOT_QUERY', hash, value);
-      let hashedQuery = await redis.hget('ROOT_QUERY', hash);
+      // let hashedQuery = await redis.hget('ROOT_QUERY', hash);
     }
   }
 

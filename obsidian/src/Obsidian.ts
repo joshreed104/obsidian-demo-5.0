@@ -86,13 +86,16 @@ export async function ObsidianRouter<T>({
     try {
       const contextResult = context ? await context(ctx) : undefined;
       let body = await request.body().value;
+
+      // changing what the query body looks like and passing to read/write
+
       if (maxQueryDepth) queryDepthLimiter(body.query, maxQueryDepth); // If a securty limit is set for maxQueryDepth, invoke queryDepthLimiter, which throws error if query depth exceeds maximum
-      body = { query: restructure(body) }; // Restructre gets rid of variables and fragments from the query
+      let restructuredBody = { query: restructure(body) }; // Restructre gets rid of variables and fragments from the query
       let cacheQueryValue = await cache.read(body.query);
       // Is query in cache?
       if (useCache && useQueryCache && cacheQueryValue) {
         let detransformedCacheQueryValue = await detransformResponse(
-          body.query,
+          restructuredBody.query,
           cacheQueryValue
         );
         if (!detransformedCacheQueryValue) {
@@ -119,11 +122,14 @@ export async function ObsidianRouter<T>({
           body.variables || undefined,
           body.operationName || undefined
         );
+        // console.log('gqlResponse raw: ', gqlResponse);
         const normalizedGQLResponse = normalizeObject(
           gqlResponse,
           customIdentifier
         );
-        if (isMutation(body)) {
+        // console.log('normalized: ', normalizedGQLResponse);
+        if (isMutation(restructuredBody)) {
+          // cache.cacheClear();
           const queryString = await request.body().value;
           invalidateCache(normalizedGQLResponse, queryString.query);
         }
