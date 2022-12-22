@@ -48,7 +48,7 @@ export class Cache {
   async write(queryStr, respObj, deleteFlag) {
     // update the original cache with same reference
     const cacheHash = this.getCacheHash(queryStr);
-    console.log('write cacheHash: ', cacheHash);
+    // console.log('write cacheHash: ', cacheHash);
     await this.cacheWrite(cacheHash, JSON.stringify(respObj));
   }
 
@@ -74,7 +74,8 @@ export class Cache {
   cacheWriteObject = async (hash, obj) => {
     let entries = Object.entries(obj).flat();
     entries = entries.map((entry) => JSON.stringify(entry));
-    console.log('entries: ', entries);
+    // console.log('entries: ', entries);
+    // adding as nested strings? take out one layer for clarity.
     await redis.hset(hash, ...entries);
   };
 
@@ -137,7 +138,7 @@ export class Cache {
     // traverses AST and gets document name ("plants"), and any filter values in the query ("maintenance:Low")
     const ast = gql(queryStr);
     const tableName = ast.definitions[0].selectionSet.selections[0].name.value;
-    console.log('ast: ', ast);
+    // console.log('ast: ', ast);
     let cacheHash = `${tableName}`;
     if (ast.definitions[0].operation === 'mutation') return cacheHash;
     if (ast.definitions[0].selectionSet.selections[0].arguments.length) {
@@ -154,7 +155,7 @@ export class Cache {
         cacheHash += `:${key}:${resultsObj[key]}`;
       }
     }
-    console.log('finished getCacheHash');
+    // console.log('finished getCacheHash');
     return cacheHash;
   }
   async cacheWrite(hash, value) {

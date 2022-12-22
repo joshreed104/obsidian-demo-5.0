@@ -90,8 +90,10 @@ export async function ObsidianRouter<T>({
       // changing what the query body looks like and passing to read/write
 
       if (maxQueryDepth) queryDepthLimiter(body.query, maxQueryDepth); // If a securty limit is set for maxQueryDepth, invoke queryDepthLimiter, which throws error if query depth exceeds maximum
+      console.log(`body: `, body);
       let restructuredBody = { query: restructure(body) }; // Restructre gets rid of variables and fragments from the query
       let cacheQueryValue = await cache.read(body.query);
+      console.log('restructured: ', restructuredBody);
       // Is query in cache?
       if (useCache && useQueryCache && cacheQueryValue) {
         let detransformedCacheQueryValue = await detransformResponse(

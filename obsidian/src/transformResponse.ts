@@ -68,14 +68,12 @@ export const detransformResponse = async (
   queryKey = queryKey.replace(/\(([^)]+)\)/, '');
   // save Regex matches for line break followed by '{'
   const matches = [...queryKey.matchAll(/\n([^\n]+)\{/g)];
-  console.log('queryKey: ', queryKey);
-  console.log('transformedValue: ', transformedValue);
-  console.log('matches: ', matches);
   // get fields of query
   const fields: Array<string> = [];
   matches.forEach((match) => {
     fields.push(match[1].trim());
   });
+  // fields ends up as array of just the fields ("plants" in the demo case);
 
   // define recursiveDetransform function body for use later
   const recursiveDetransform = async (
@@ -83,6 +81,9 @@ export const detransformResponse = async (
     fields: Array<string>,
     depth: number = 0
   ): Promise<any> => {
+    console.log('transformedValue: ', transformedValue);
+    const keys = Object.keys(transformedValue);
+    console.log('first plant data: ', keys[0]);
     let result: any = {};
     let currDepth = depth;
 
@@ -130,6 +131,7 @@ export const detransformResponse = async (
     transformedValue,
     fields
   );
+  // console.log('detransformedSubresult: ', detransformedSubresult);
   if (detransformedSubresult === 'cacheEvicted') {
     detransformedResult = undefined;
   } else {
