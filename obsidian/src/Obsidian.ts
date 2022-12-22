@@ -87,7 +87,7 @@ export async function ObsidianRouter<T>({
     try {
       const contextResult = context ? await context(ctx) : undefined;
       let body = await request.body().value;
-      const mapped = mapSelectionSet(body.query);
+      const selectionsArray = mapSelectionSet(body.query);
       // changing what the query body looks like and passing to read/write
 
       if (maxQueryDepth) queryDepthLimiter(body.query, maxQueryDepth); // If a securty limit is set for maxQueryDepth, invoke queryDepthLimiter, which throws error if query depth exceeds maximum
@@ -99,7 +99,8 @@ export async function ObsidianRouter<T>({
       if (useCache && useQueryCache && cacheQueryValue) {
         let detransformedCacheQueryValue = await detransformResponse(
           restructuredBody.query,
-          cacheQueryValue
+          cacheQueryValue,
+          selectionsArray
         );
         if (!detransformedCacheQueryValue) {
           // cache was evicted if any partial cache is missing, which causes detransformResponse to return undefined
@@ -172,6 +173,7 @@ export async function ObsidianRouter<T>({
   });
 
   // serve graphql playground
+  // deno-lint-ignore require-await
   await router.get(path, async (ctx: any) => {
     const { request, response } = ctx;
     if (usePlayground) {

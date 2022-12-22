@@ -62,7 +62,8 @@ export const transformResponse = (
  */
 export const detransformResponse = async (
   queryKey: String,
-  transformedValue: any
+  transformedValue: any,
+  selectionsArray: Array<string>
 ): Promise<any> => {
   // remove all text within parentheses aka '(input: ...)'
   queryKey = queryKey.replace(/\(([^)]+)\)/, '');
@@ -79,6 +80,7 @@ export const detransformResponse = async (
   const recursiveDetransform = async (
     transformedValue: any,
     fields: Array<string>,
+    selectionsArray: Array<string>,
     depth: number = 0
   ): Promise<any> => {
     const keys = Object.keys(transformedValue);
@@ -93,7 +95,10 @@ export const detransformResponse = async (
       result[currField] = [];
 
       for (let hash in transformedValue) {
-        const redisValue: GenericObject = await cache.cacheReadObject(hash);
+        const redisValue: GenericObject = await cache.cacheReadObject(
+          hash,
+          selectionsArray
+        );
 
         // edge case in which our eviction strategy has pushed partial Cache data out of Redis
         if (!redisValue) {
@@ -105,6 +110,7 @@ export const detransformResponse = async (
         let recursiveResult = await recursiveDetransform(
           transformedValue[hash],
           fields,
+          selectionsArray,
           (depth = currDepth + 1)
         );
 
@@ -127,7 +133,8 @@ export const detransformResponse = async (
   let detransformedResult: any = { data: {} };
   const detransformedSubresult = await recursiveDetransform(
     transformedValue,
-    fields
+    fields,
+    selectionsArray
   );
   // console.log('detransformedSubresult: ', detransformedSubresult);
   if (detransformedSubresult === 'cacheEvicted') {
@@ -135,7 +142,8 @@ export const detransformResponse = async (
   } else {
     detransformedResult.data = await recursiveDetransform(
       transformedValue,
-      fields
+      fields,
+      selectionsArray
     );
   }
 
