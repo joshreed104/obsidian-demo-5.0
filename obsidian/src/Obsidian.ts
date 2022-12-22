@@ -9,6 +9,7 @@ import { rebuildFromQuery } from './rebuild.js';
 import { normalizeObject } from './normalize.ts';
 import { transformResponse, detransformResponse } from './transformResponse.ts';
 import { isMutation, invalidateCache } from './invalidateCacheCheck.ts';
+import { mapSelectionSet } from './mapSelections.js';
 
 interface Constructable<T> {
   new (...args: any): T & OakRouter;
@@ -86,7 +87,7 @@ export async function ObsidianRouter<T>({
     try {
       const contextResult = context ? await context(ctx) : undefined;
       let body = await request.body().value;
-
+      const mapped = mapSelectionSet(body.query);
       // changing what the query body looks like and passing to read/write
 
       if (maxQueryDepth) queryDepthLimiter(body.query, maxQueryDepth); // If a securty limit is set for maxQueryDepth, invoke queryDepthLimiter, which throws error if query depth exceeds maximum

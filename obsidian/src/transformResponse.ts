@@ -81,9 +81,7 @@ export const detransformResponse = async (
     fields: Array<string>,
     depth: number = 0
   ): Promise<any> => {
-    console.log('transformedValue: ', transformedValue);
     const keys = Object.keys(transformedValue);
-    console.log('first plant data: ', keys[0]);
     let result: any = {};
     let currDepth = depth;
 

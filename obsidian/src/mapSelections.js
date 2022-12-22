@@ -1,11 +1,13 @@
 /** @format */
 
-import { gql } from "https://deno.land/x/oak_graphql/mod.ts";
+import { gql } from 'https://deno.land/x/oak_graphql/mod.ts';
 
 export function mapSelectionSet(query) {
-  let selectionKeysMap = { data: "data" };
+  console.log('query: ', query);
+  let selectionKeysMap = { data: 'data' };
   let ast = gql(query);
   let selections = ast.definitions[0].selectionSet.selections;
+  console.log('selections: ', selections);
 
   const recursiveMap = (recurseSelections) => {
     for (const selection of recurseSelections) {
@@ -22,5 +24,7 @@ export function mapSelectionSet(query) {
     }
   };
   recursiveMap(selections);
-  return selectionKeysMap;
+  const fieldsArray = Object.keys(selectionKeysMap);
+  console.log(fieldsArray);
+  return fieldsArray;
 }
