@@ -61,14 +61,15 @@ export const transformResponse = (
  * @return {GenericObject} Nested object representing the original graphQL response object for a given queryKey
  */
 export const detransformResponse = async (
-  queryKey: String,
+  queryString: String,
   transformedValue: any,
   selectionsArray: Array<string>
 ): Promise<any> => {
   // remove all text within parentheses aka '(input: ...)'
-  queryKey = queryKey.replace(/\(([^)]+)\)/, '');
+  queryString = queryString.replace(/\(([^)]+)\)/, '');
   // save Regex matches for line break followed by '{'
-  const matches = [...queryKey.matchAll(/\n([^\n]+)\{/g)];
+  const matches = [...queryString.matchAll(/\n([^\n]+)\{/g)];
+
   // get fields of query
   const fields: Array<string> = [];
   matches.forEach((match) => {

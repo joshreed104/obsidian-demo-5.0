@@ -33,7 +33,7 @@ export class Cache {
     return await redis.configSet(parameter, value);
   }
 
-  // Main functionality methods
+  // Main functionality methods below
   // for reading the inital query
   async read(queryStr) {
     //the queryStr it gets is the JSON stringified
@@ -47,7 +47,7 @@ export class Cache {
   }
   async write(queryStr, respObj, deleteFlag) {
     // update the original cache with same reference
-    const cacheHash = this.getCacheHash(queryStr);
+    const cacheHash = this.createQueryKey(queryStr);
     // console.log('write cacheHash: ', cacheHash);
     await this.cacheWrite(cacheHash, JSON.stringify(respObj));
   }
@@ -116,11 +116,11 @@ export class Cache {
     return JSON.stringify(finalReturn);
   }
 
-  async cacheRead(hash) {
+  async cacheRead(queryStr) {
     if (this.context === 'client') {
-      return this.storage[hash];
+      return this.storage[queryStr];
     } else {
-      if (hash === 'ROOT_QUERY' || hash === 'ROOT_MUTATION') {
+      if (queryStr === 'ROOT_QUERY' || queryStr === 'ROOT_MUTATION') {
         const hasRootQuery = await redis.get('ROOT_QUERY');
 
         if (!hasRootQuery) {
@@ -132,21 +132,23 @@ export class Cache {
           await redis.set('ROOT_MUTATION', JSON.stringify({}));
         }
       }
-      const cacheHash = this.getCacheHash(hash);
-      let hashedQuery = await redis.hget('ROOT_QUERY', cacheHash);
 
-      if (!hashedQuery === undefined) return;
-      return JSON.parse(hashedQuery);
+      // use cacheQueryKey to create a key with object name and inputs to save in cache
+      const queryKey = this.createQueryKey(queryStr);
+      const cacheResponse = await redis.hget('ROOT_QUERY', queryKey);
+
+      if (!cacheResponse === undefined) return;
+      return JSON.parse(cacheResponse);
     }
   }
 
-  getCacheHash(queryStr) {
-    // traverses AST and gets document name ("plants"), and any filter values in the query ("maintenance:Low")
+  createQueryKey(queryStr) {
+    // traverses AST and gets object name ("plants"), and any filter keys in the query ("maintenance:Low")
     const ast = gql(queryStr);
     const tableName = ast.definitions[0].selectionSet.selections[0].name.value;
-    // console.log('ast: ', ast);
-    let cacheHash = `${tableName}`;
-    if (ast.definitions[0].operation === 'mutation') return cacheHash;
+    let queryKey = `${tableName}`;
+
+    if (ast.definitions[0].operation === 'mutation') return queryKey;
     if (ast.definitions[0].selectionSet.selections[0].arguments.length) {
       const fieldsArray =
         ast.definitions[0].selectionSet.selections[0].arguments[0].value.fields;
@@ -158,11 +160,11 @@ export class Cache {
       });
 
       for (let key in resultsObj) {
-        cacheHash += `:${key}:${resultsObj[key]}`;
+        queryKey += `:${key}:${resultsObj[key]}`;
       }
     }
     // console.log('finished getCacheHash');
-    return cacheHash;
+    return queryKey;
   }
   async cacheWrite(hash, value) {
     // writes value to object cache or JSON.stringified value to redis cache
