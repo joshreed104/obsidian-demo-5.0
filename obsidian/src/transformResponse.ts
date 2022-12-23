@@ -61,28 +61,29 @@ export const transformResponse = (
  * @return {GenericObject} Nested object representing the original graphQL response object for a given queryKey
  */
 export const detransformResponse = async (
-  queryKey: String,
-  transformedValue: any
+  queryString: String,
+  transformedValue: any,
+  selectionsArray: Array<string>
 ): Promise<any> => {
   // remove all text within parentheses aka '(input: ...)'
-  queryKey = queryKey.replace(/\(([^)]+)\)/, '');
+  queryString = queryString.replace(/\(([^)]+)\)/, '');
   // save Regex matches for line break followed by '{'
-  const matches = [...queryKey.matchAll(/\n([^\n]+)\{/g)];
-  console.log('queryKey: ', queryKey);
-  console.log('transformedValue: ', transformedValue);
-  console.log('matches: ', matches);
-  // get fields of query
-  const fields: Array<string> = [];
-  matches.forEach((match) => {
-    fields.push(match[1].trim());
-  });
+  const matches = [...queryString.matchAll(/\n([^\n]+)\{/g)];
 
+  // get fields of query
+  const tableNames: Array<string> = [];
+  matches.forEach((match) => {
+    tableNames.push(match[1].trim());
+  });
+  // fields ends up as array of just the fields ("plants" in the demo case);
   // define recursiveDetransform function body for use later
   const recursiveDetransform = async (
     transformedValue: any,
-    fields: Array<string>,
+    tableNames: Array<string>,
+    selectionsArray: Array<string>,
     depth: number = 0
   ): Promise<any> => {
+    const keys = Object.keys(transformedValue);
     let result: any = {};
     let currDepth = depth;
 
@@ -90,22 +91,26 @@ export const detransformResponse = async (
     if (Object.keys(transformedValue).length === 0) {
       return result;
     } else {
-      let currField: string = fields[currDepth];
-      result[currField] = [];
+      let currTable: string = tableNames[currDepth];
+      result[currTable] = [];
 
       for (let hash in transformedValue) {
-        const redisValue: GenericObject = await cache.cacheReadObject(hash);
+        const redisValue: GenericObject = await cache.cacheReadObject(
+          hash,
+          selectionsArray
+        );
 
         // edge case in which our eviction strategy has pushed partial Cache data out of Redis
         if (!redisValue) {
           return 'cacheEvicted';
         }
 
-        result[currField].push(redisValue);
+        result[currTable].push(redisValue);
 
         let recursiveResult = await recursiveDetransform(
           transformedValue[hash],
-          fields,
+          tableNames,
+          selectionsArray,
           (depth = currDepth + 1)
         );
 
@@ -114,8 +119,8 @@ export const detransformResponse = async (
           return 'cacheEvicted';
           // normal case with no cache eviction
         } else {
-          result[currField][result[currField].length - 1] = Object.assign(
-            result[currField][result[currField].length - 1],
+          result[currTable][result[currTable].length - 1] = Object.assign(
+            result[currTable][result[currTable].length - 1],
             recursiveResult
           );
         }
@@ -128,14 +133,17 @@ export const detransformResponse = async (
   let detransformedResult: any = { data: {} };
   const detransformedSubresult = await recursiveDetransform(
     transformedValue,
-    fields
+    tableNames,
+    selectionsArray
   );
+  // console.log('detransformedSubresult: ', detransformedSubresult);
   if (detransformedSubresult === 'cacheEvicted') {
     detransformedResult = undefined;
   } else {
     detransformedResult.data = await recursiveDetransform(
       transformedValue,
-      fields
+      tableNames,
+      selectionsArray
     );
   }
 

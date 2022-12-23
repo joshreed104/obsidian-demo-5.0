@@ -66,6 +66,14 @@ export const Section = (props: any) => {
 		}
 	}`;
 
+  // Selective Query demo
+  const selectiveQuery = `query {
+    plants(input: {maintenance: "Low"}) {
+      name
+      size
+    }
+  }`;
+
   // GQL MUTATIONS
   const addPlantQuery = `mutation {
 		addPlant(input: {name: "${name}", maintenance: "${maintenance}", size: "${size}", imageurl: "${imageurl}"}) {
@@ -91,6 +99,12 @@ export const Section = (props: any) => {
 
   const getLargePlants = async () => {
     const result = await query(largePlantsQuery);
+    setPlants(result.data.plants);
+  };
+
+  const getSelectiveQuery = async () => {
+    console.log(`getSelectiveQuery`);
+    const result = await query(selectiveQuery);
     setPlants(result.data.plants);
   };
 
@@ -157,6 +171,9 @@ export const Section = (props: any) => {
         </button>
         <button className='btn btn-outline-primary' onClick={getLargePlants}>
           Large Plants
+        </button>
+        <button className='btn btn-outline-primary' onClick={getSelectiveQuery}>
+          Selective Query
         </button>
       </div>
       <Plants plants={plants} deletePlant={deletePlant} />

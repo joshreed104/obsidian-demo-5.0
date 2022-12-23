@@ -89,6 +89,7 @@ const GraphQLRouter = await ObsidianRouter<ObsRouter>({
   usePlayground: true,
   // fields used to create the custom entries in the database
   customIdentifier: ['__typename', 'id'],
+  mutationTableMap: { addPlant: 'plants' },
 });
 app.use(GraphQLRouter.routes(), GraphQLRouter.allowedMethods());
 

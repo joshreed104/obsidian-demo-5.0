@@ -33,7 +33,7 @@ export class Cache {
     return await redis.configSet(parameter, value);
   }
 
-  // Main functionality methods
+  // Main functionality methods below
   // for reading the inital query
   async read(queryStr) {
     //the queryStr it gets is the JSON stringified
@@ -47,8 +47,8 @@ export class Cache {
   }
   async write(queryStr, respObj, deleteFlag) {
     // update the original cache with same reference
-    const cacheHash = this.getCacheHash(queryStr);
-    console.log('write cacheHash: ', cacheHash);
+    const cacheHash = this.createQueryKey(queryStr);
+    // console.log('write cacheHash: ', cacheHash);
     await this.cacheWrite(cacheHash, JSON.stringify(respObj));
   }
 
@@ -74,16 +74,22 @@ export class Cache {
   cacheWriteObject = async (hash, obj) => {
     let entries = Object.entries(obj).flat();
     entries = entries.map((entry) => JSON.stringify(entry));
-    console.log('entries: ', entries);
+    // console.log('entries: ', entries);
+    // adding as nested strings? take out one layer for clarity.
     await redis.hset(hash, ...entries);
   };
 
-  cacheReadObject = async (hash, field = false) => {
-    if (field) {
-      let returnValue = await redisdb.hget(hash, JSON.stringify(field));
-
-      if (returnValue === undefined) return undefined;
-      return JSON.parse(returnValue);
+  cacheReadObject = async (hash, fields = []) => {
+    // Checks for the fields requested, then queries cache for those specific keys in the hashes
+    if (fields.length !== 0) {
+      const fieldObj = {};
+      for (const field of fields) {
+        const rawCacheValue = await redisdb.hget(hash, JSON.stringify(field));
+        fieldObj[field] = JSON.parse(rawCacheValue);
+      }
+      // if (returnValue === undefined) return undefined;
+      console.log('fieldObj: ', fieldObj);
+      return fieldObj;
     } else {
       let objArray = await redisdb.hgetall(hash);
       if (objArray.length == 0) return undefined;
@@ -109,11 +115,11 @@ export class Cache {
     return JSON.stringify(finalReturn);
   }
 
-  async cacheRead(hash) {
+  async cacheRead(queryStr) {
     if (this.context === 'client') {
-      return this.storage[hash];
+      return this.storage[queryStr];
     } else {
-      if (hash === 'ROOT_QUERY' || hash === 'ROOT_MUTATION') {
+      if (queryStr === 'ROOT_QUERY' || queryStr === 'ROOT_MUTATION') {
         const hasRootQuery = await redis.get('ROOT_QUERY');
 
         if (!hasRootQuery) {
@@ -125,21 +131,23 @@ export class Cache {
           await redis.set('ROOT_MUTATION', JSON.stringify({}));
         }
       }
-      const cacheHash = this.getCacheHash(hash);
-      let hashedQuery = await redis.hget('ROOT_QUERY', cacheHash);
+      console.log(queryStr);
+      // use cacheQueryKey to create a key with object name and inputs to save in cache
+      const queryKey = this.createQueryKey(queryStr);
+      const cacheResponse = await redis.hget('ROOT_QUERY', queryKey);
 
-      if (!hashedQuery === undefined) return;
-      return JSON.parse(hashedQuery);
+      if (!cacheResponse === undefined) return;
+      return JSON.parse(cacheResponse);
     }
   }
 
-  getCacheHash(queryStr) {
-    // traverses AST and gets document name ("plants"), and any filter values in the query ("maintenance:Low")
+  createQueryKey(queryStr) {
+    // traverses AST and gets object name ("plants"), and any filter keys in the query ("maintenance:Low")
     const ast = gql(queryStr);
     const tableName = ast.definitions[0].selectionSet.selections[0].name.value;
-    console.log('ast: ', ast);
-    let cacheHash = `${tableName}`;
-    if (ast.definitions[0].operation === 'mutation') return cacheHash;
+    let queryKey = `${tableName}`;
+
+    if (ast.definitions[0].operation === 'mutation') return queryKey;
     if (ast.definitions[0].selectionSet.selections[0].arguments.length) {
       const fieldsArray =
         ast.definitions[0].selectionSet.selections[0].arguments[0].value.fields;
@@ -151,11 +159,11 @@ export class Cache {
       });
 
       for (let key in resultsObj) {
-        cacheHash += `:${key}:${resultsObj[key]}`;
+        queryKey += `:${key}:${resultsObj[key]}`;
       }
     }
-    console.log('finished getCacheHash');
-    return cacheHash;
+    // console.log('finished getCacheHash');
+    return queryKey;
   }
   async cacheWrite(hash, value) {
     // writes value to object cache or JSON.stringified value to redis cache
