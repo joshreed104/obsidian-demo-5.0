@@ -36,6 +36,7 @@ export interface ObsidianRouterOptions<T> {
   useQueryCache?: boolean; // trivial parameter
   useRebuildCache?: boolean;
   customIdentifier?: Array<string>;
+  mutationTableMap?: Record<string, unknown>; // Deno recommended type name
 }
 
 export interface ResolversProps {
@@ -67,6 +68,7 @@ export async function ObsidianRouter<T>({
   useQueryCache = true,
   useRebuildCache = true,
   customIdentifier = ['id', '__typename'],
+  mutationTableMap = {},
 }: ObsidianRouterOptions<T>): Promise<T> {
   redisPortExport = redisPort;
   const router = new Router();
@@ -80,6 +82,7 @@ export async function ObsidianRouter<T>({
     cache.configSet('maxmemory', maxmemory);
   }
 
+  //post
   await router.post(path, async (ctx: any) => {
     const t0 = performance.now();
     const { response, request } = ctx;
@@ -87,14 +90,16 @@ export async function ObsidianRouter<T>({
     try {
       const contextResult = context ? await context(ctx) : undefined;
       let body = await request.body().value;
+
+      // Gets requested data point from query and saves into an array
       const selectionsArray = mapSelectionSet(body.query);
-      // changing what the query body looks like and passing to read/write
 
       if (maxQueryDepth) queryDepthLimiter(body.query, maxQueryDepth); // If a securty limit is set for maxQueryDepth, invoke queryDepthLimiter, which throws error if query depth exceeds maximum
-      console.log(`body: `, body);
       let restructuredBody = { query: restructure(body) }; // Restructre gets rid of variables and fragments from the query
+
+      // Parses query string into query key and checks cach for that key
       let cacheQueryValue = await cache.read(body.query);
-      console.log('restructured: ', restructuredBody);
+
       // Is query in cache?
       if (useCache && useQueryCache && cacheQueryValue) {
         let detransformedCacheQueryValue = await detransformResponse(

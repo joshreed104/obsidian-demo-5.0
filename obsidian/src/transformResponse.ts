@@ -71,16 +71,15 @@ export const detransformResponse = async (
   const matches = [...queryString.matchAll(/\n([^\n]+)\{/g)];
 
   // get fields of query
-  const fields: Array<string> = [];
+  const tableNames: Array<string> = [];
   matches.forEach((match) => {
-    fields.push(match[1].trim());
+    tableNames.push(match[1].trim());
   });
   // fields ends up as array of just the fields ("plants" in the demo case);
-
   // define recursiveDetransform function body for use later
   const recursiveDetransform = async (
     transformedValue: any,
-    fields: Array<string>,
+    tableNames: Array<string>,
     selectionsArray: Array<string>,
     depth: number = 0
   ): Promise<any> => {
@@ -92,8 +91,8 @@ export const detransformResponse = async (
     if (Object.keys(transformedValue).length === 0) {
       return result;
     } else {
-      let currField: string = fields[currDepth];
-      result[currField] = [];
+      let currTable: string = tableNames[currDepth];
+      result[currTable] = [];
 
       for (let hash in transformedValue) {
         const redisValue: GenericObject = await cache.cacheReadObject(
@@ -106,11 +105,11 @@ export const detransformResponse = async (
           return 'cacheEvicted';
         }
 
-        result[currField].push(redisValue);
+        result[currTable].push(redisValue);
 
         let recursiveResult = await recursiveDetransform(
           transformedValue[hash],
-          fields,
+          tableNames,
           selectionsArray,
           (depth = currDepth + 1)
         );
@@ -120,8 +119,8 @@ export const detransformResponse = async (
           return 'cacheEvicted';
           // normal case with no cache eviction
         } else {
-          result[currField][result[currField].length - 1] = Object.assign(
-            result[currField][result[currField].length - 1],
+          result[currTable][result[currTable].length - 1] = Object.assign(
+            result[currTable][result[currTable].length - 1],
             recursiveResult
           );
         }
@@ -134,7 +133,7 @@ export const detransformResponse = async (
   let detransformedResult: any = { data: {} };
   const detransformedSubresult = await recursiveDetransform(
     transformedValue,
-    fields,
+    tableNames,
     selectionsArray
   );
   // console.log('detransformedSubresult: ', detransformedSubresult);
@@ -143,7 +142,7 @@ export const detransformResponse = async (
   } else {
     detransformedResult.data = await recursiveDetransform(
       transformedValue,
-      fields,
+      tableNames,
       selectionsArray
     );
   }

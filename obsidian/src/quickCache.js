@@ -80,9 +80,8 @@ export class Cache {
   };
 
   cacheReadObject = async (hash, fields) => {
-    console.log('fields: ', fields);
+    // Checks for the fields requested, then queries cache for those specific keys in the hashes
     if (fields.length) {
-      console.log('inside fields if statement');
       const fieldObj = {};
       for (const field of fields) {
         const rawCacheValue = await redisdb.hget(hash, JSON.stringify(field));
