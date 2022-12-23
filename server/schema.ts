@@ -53,7 +53,7 @@ const types = gql`
     climate: String!
   }
   type Query {
-    greens(input: PlantInput): [Plant]!
+    plants(input: PlantInput): [Plant]!
     countries(input: CountryInput): [Country]!
   }
 

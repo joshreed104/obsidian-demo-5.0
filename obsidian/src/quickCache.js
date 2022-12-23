@@ -79,9 +79,9 @@ export class Cache {
     await redis.hset(hash, ...entries);
   };
 
-  cacheReadObject = async (hash, fields) => {
+  cacheReadObject = async (hash, fields = []) => {
     // Checks for the fields requested, then queries cache for those specific keys in the hashes
-    if (fields.length) {
+    if (fields.length !== 0) {
       const fieldObj = {};
       for (const field of fields) {
         const rawCacheValue = await redisdb.hget(hash, JSON.stringify(field));
@@ -131,7 +131,7 @@ export class Cache {
           await redis.set('ROOT_MUTATION', JSON.stringify({}));
         }
       }
-
+      console.log(queryStr);
       // use cacheQueryKey to create a key with object name and inputs to save in cache
       const queryKey = this.createQueryKey(queryStr);
       const cacheResponse = await redis.hget('ROOT_QUERY', queryKey);

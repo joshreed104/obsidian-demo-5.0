@@ -140,7 +140,11 @@ export async function ObsidianRouter<T>({
         if (isMutation(restructuredBody)) {
           // cache.cacheClear();
           const queryString = await request.body().value;
-          invalidateCache(normalizedGQLResponse, queryString.query);
+          invalidateCache(
+            normalizedGQLResponse,
+            queryString.query,
+            mutationTableMap
+          );
         }
         // If read query: run query, normalize GQL response, transform GQL response, write to cache, and write pieces of normalized GQL response objects
         else {
